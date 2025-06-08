@@ -1,7 +1,7 @@
 # --- Konfigurasi ---
 $appName            = "Pms.exe"
-$windowTitleKeyword = "PMS"  # Kata kunci yang biasa muncul di judul jendela aplikasi
-$shortcutPath       = "C:\Path\To\Shortcut\Pms Shortcut.lnk"  # Ganti ke lokasi shortcut aplikasi kamu
+$windowTitleKeyword = "Pms"  # Keyword nama aplikasi
+$shortcutPath       = "C:\Users\trans\Desktop\Pms.lnk"  # Ganti ke lokasi shortcut aplikasi kamu
 $logFolder          = "D:\Starsys\Log"
 $timeout            = 300   # dalam detik (5 menit)
 $checkInterval      = 1     # cek setiap 1 detik
@@ -15,7 +15,7 @@ $runningCount  = 0
 # --- Fungsi Logging Harian ---
 function Write-Log($message) {
     $dateString = Get-Date -Format "yyyy-MM-dd"
-    $logPath = Join-Path $logFolder "$dateString-log.txt"
+    $logPath = Join-Path $logFolder "$dateString-Monitoring.txt"
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Add-Content -Path $logPath -Value "$timestamp - $message"
 }
@@ -100,7 +100,7 @@ while ($true) {
             Write-Log "$appName tidak merespons. Melakukan restart."
 
             Stop-Process -Name ($appName -replace ".exe", "") -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 5
+            Start-Sleep -Seconds 20
             Start-Process -FilePath $shortcutPath
 
             Show-Notification "$appName Direstart" "$appName tidak merespons dan telah direstart otomatis."
