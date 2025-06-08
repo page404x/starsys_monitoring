@@ -3,9 +3,10 @@ $appName            = "Pms.exe"
 $windowTitleKeyword = "Pms"
 $shortcutPath       = "C:\Users\trans\Desktop\Pms.lnk"
 $logFolder          = "D:\Starsys\Log"
-$timeout            = 300   # 5 menit
-$checkInterval      = 1     # tiap detik
-$requiredStableTime = 1     # minimal stabil 1 detik
+$timeout            = 300   # 5 menit tidak responsif
+$checkInterval      = 1     # cek tiap 1 detik
+$requiredStableTime = 1     # dianggap stabil kalau aktif selama >= 1 detik
+$maxStableDuration  = 120   # jika stabil 2 menit, restart juga (opsional reset periodik)
 
 # --- Variabel Internal ---
 $remainingTime = $timeout
@@ -18,23 +19,6 @@ function Write-Log($message) {
     $logPath = Join-Path $logFolder "$dateString-Monitoring.txt"
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Add-Content -Path $logPath -Value "$timestamp - $message"
-}
-
-# --- Fungsi Notifikasi Tray Balloon ---
-function Show-Notification($title, $message) {
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-
-    $notify = New-Object System.Windows.Forms.NotifyIcon
-    $notify.Icon = [System.Drawing.SystemIcons]::Information
-    $notify.BalloonTipTitle = $title
-    $notify.BalloonTipText = $message
-    $notify.BalloonTipIcon = "Info"
-    $notify.Visible = $true
-
-    $notify.ShowBalloonTip(15000)
-    Start-Sleep -Seconds 16
-    $notify.Dispose()
 }
 
 # --- Cek & Buat Folder Log ---
@@ -74,6 +58,20 @@ while ($true) {
         Write-Progress -Activity "Monitoring $appName" `
                        -Status "Stabil ($runningCount detik)" `
                        -PercentComplete 100
+
+        if ($runningCount -ge $maxStableDuration) {
+            Write-Host "[$(Get-Date)] Aplikasi berjalan stabil 2 menit. Restart sebagai reset."
+            Write-Log "Aplikasi berjalan stabil selama 2 menit. Restart untuk reset."
+
+            Stop-Process -Name ($appName -replace ".exe", "") -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 20
+            Start-Process -FilePath $shortcutPath
+
+            Write-Log "Restart dilakukan setelah 2 menit stabil."
+            $remainingTime = $timeout
+            $wasResponding = $true
+            $runningCount  = 0
+        }
     } else {
         $runningCount = 0
         $wasResponding = $false
@@ -92,9 +90,7 @@ while ($true) {
             Start-Sleep -Seconds 20
             Start-Process -FilePath $shortcutPath
 
-            Show-Notification "$appName Direstart" "$appName tidak merespons dan telah direstart otomatis."
-            Write-Log "Notifikasi tray dikirim ke user."
-
+            Write-Log "Restart dilakukan karena aplikasi tidak responsif."
             $remainingTime = $timeout
             $wasResponding = $true
             $runningCount  = 0
