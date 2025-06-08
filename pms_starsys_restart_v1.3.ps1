@@ -1,11 +1,11 @@
 # --- Konfigurasi ---
 $appName            = "Pms.exe"
-$windowTitleKeyword = "Pms"  # Keyword nama aplikasi
-$shortcutPath       = "C:\Users\trans\Desktop\Pms.lnk"  # Ganti ke lokasi shortcut aplikasi kamu
+$windowTitleKeyword = "Pms"
+$shortcutPath       = "C:\Users\trans\Desktop\Pms.lnk"
 $logFolder          = "D:\Starsys\Log"
-$timeout            = 300   # dalam detik (5 menit)
-$checkInterval      = 1     # cek setiap 1 detik
-$requiredStableTime = 1     # dianggap stabil kalau aktif selama >= 1 detik
+$timeout            = 300   # 5 menit
+$checkInterval      = 1     # tiap detik
+$requiredStableTime = 1     # minimal stabil 1 detik
 
 # --- Variabel Internal ---
 $remainingTime = $timeout
@@ -20,34 +20,24 @@ function Write-Log($message) {
     Add-Content -Path $logPath -Value "$timestamp - $message"
 }
 
-# --- Fungsi Notifikasi Toast ---
+# --- Fungsi Notifikasi Tray Balloon ---
 function Show-Notification($title, $message) {
-    $template = @"
-[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null
-[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
 
-$xml = @"
-<toast duration='long'>
-  <visual>
-    <binding template='ToastGeneric'>
-      <text>$title</text>
-      <text>$message</text>
-    </binding>
-  </visual>
-  <audio src='ms-winsoundevent:Notification.Default' />
-</toast>
-"@
+    $notify = New-Object System.Windows.Forms.NotifyIcon
+    $notify.Icon = [System.Drawing.SystemIcons]::Information
+    $notify.BalloonTipTitle = $title
+    $notify.BalloonTipText = $message
+    $notify.BalloonTipIcon = "Info"
+    $notify.Visible = $true
 
-$doc = New-Object Windows.Data.Xml.Dom.XmlDocument
-$doc.LoadXml($xml)
-
-$toast = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("PMS Watcher")
-$toast.Show($doc)
-"@
-    Invoke-Expression $template
+    $notify.ShowBalloonTip(15000)
+    Start-Sleep -Seconds 16
+    $notify.Dispose()
 }
 
-# --- Buat folder log jika belum ada ---
+# --- Cek & Buat Folder Log ---
 if (-not (Test-Path $logFolder)) {
     New-Item -ItemType Directory -Path $logFolder | Out-Null
 }
@@ -57,7 +47,6 @@ Write-Host "[$(Get-Date)] Monitoring $appName..."
 
 while ($true) {
     $process = Get-Process -Name ($appName -replace ".exe", "") -ErrorAction SilentlyContinue
-
     $isRunningWithWindow = $false
 
     if ($process) {
@@ -104,7 +93,7 @@ while ($true) {
             Start-Process -FilePath $shortcutPath
 
             Show-Notification "$appName Direstart" "$appName tidak merespons dan telah direstart otomatis."
-            Write-Log "Notifikasi dikirim ke user."
+            Write-Log "Notifikasi tray dikirim ke user."
 
             $remainingTime = $timeout
             $wasResponding = $true
