@@ -60,8 +60,8 @@ while ($true) {
                        -PercentComplete 100
 
         if ($runningCount -ge $maxStableDuration) {
-            Write-Host "[$(Get-Date)] Aplikasi berjalan stabil 2 menit. Restart sebagai reset."
-            Write-Log "Aplikasi berjalan stabil selama 2 menit. Restart untuk reset."
+            Write-Host "[$(Get-Date)] Aplikasi berjalan stabil 2 menit...Terdeteksi Hang."
+            Write-Log "Aplikasi berjalan stabil selama 2 menit...Terdeteksi Hang, Restart."
 
             Stop-Process -Name ($appName -replace ".exe", "") -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 20
